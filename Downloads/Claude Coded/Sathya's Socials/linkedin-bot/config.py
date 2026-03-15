@@ -59,7 +59,8 @@ def get_account_id(late_api_key, config_path=DEFAULT_CONFIG_PATH):
     except requests.exceptions.HTTPError as e:
         print(f"\n❌ GetLate API error: {e}\n   Check your LATE_API_KEY is correct.\n")
         sys.exit(1)
-    accounts = resp.json()
+    data = resp.json()
+    accounts = data.get("accounts", data) if isinstance(data, dict) else data
 
     linkedin = next(
         (a for a in accounts if a.get("platform") == "linkedin"), None
@@ -71,7 +72,7 @@ def get_account_id(late_api_key, config_path=DEFAULT_CONFIG_PATH):
         )
         sys.exit(1)
 
-    account_id = linkedin["id"]
+    account_id = linkedin.get("_id") or linkedin.get("id")
     with open(config_path, "w") as f:
         json.dump({"linkedin_account_id": account_id}, f, indent=2)
 
