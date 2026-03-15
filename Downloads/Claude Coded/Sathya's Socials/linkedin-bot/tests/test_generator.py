@@ -71,6 +71,17 @@ def test_score_hooks_falls_back_to_zero_on_bad_response():
     assert idx == 0
 
 
+def test_score_hooks_falls_back_to_zero_on_out_of_range():
+    """score_hooks returns 0 if Groq returns a number beyond the hooks list."""
+    hooks = ["Hook A", "Hook B"]
+    client = make_mock_client("7\nHook 7 is best because it is very impactful.")
+
+    from generator import score_hooks
+    idx = score_hooks(client, hooks=hooks, system_prompt="rules")
+
+    assert idx == 0
+
+
 def test_generate_post_uses_winning_hook():
     """generate_post sends winning hook to Groq and returns post text."""
     post_text = "Winning hook line.\n\nBody of the post here.\n\nWhat would you add?"
@@ -87,6 +98,7 @@ def test_generate_post_uses_winning_hook():
     assert result == post_text
     call_args = client.chat.completions.create.call_args
     user_msg = call_args[1]["messages"][-1]["content"]
+    assert "Use EXACTLY this as your first line" in user_msg
     assert "Winning hook line." in user_msg
 
 

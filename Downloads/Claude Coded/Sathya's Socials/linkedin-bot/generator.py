@@ -132,6 +132,9 @@ def generate(topic: str, groq_key: str, posts_text: str, icp_text: str) -> tuple
     print("⚙️  Generating hooks...")
     hooks = generate_hooks(client, topic, system_prompt)
 
+    if not hooks:
+        raise ValueError("Pass 1 returned no hooks. Check Groq response or retry.")
+
     print("⚙️  Scoring hooks...", end=" ", flush=True)
     best_idx = score_hooks(client, hooks, system_prompt)
     winning_hook = hooks[best_idx]
