@@ -22,7 +22,8 @@ def load_context(posts_path=DEFAULT_POSTS_PATH, icp_path=DEFAULT_ICP_PATH):
     icp_text = ""
 
     if os.path.exists(posts_path):
-        posts_text = open(posts_path).read().strip()
+        with open(posts_path) as f:
+            posts_text = f.read().strip()
     if not posts_text:
         warnings.append(
             "my_posts.txt is empty — generating without voice samples.\n"
@@ -30,7 +31,8 @@ def load_context(posts_path=DEFAULT_POSTS_PATH, icp_path=DEFAULT_ICP_PATH):
         )
 
     if os.path.exists(icp_path):
-        icp_text = open(icp_path).read().strip()
+        with open(icp_path) as f:
+            icp_text = f.read().strip()
     if not icp_text:
         warnings.append(
             "icp.txt is empty — generating without ICP context.\n"
@@ -43,7 +45,8 @@ def load_context(posts_path=DEFAULT_POSTS_PATH, icp_path=DEFAULT_ICP_PATH):
 def get_account_id(late_api_key, config_path=DEFAULT_CONFIG_PATH):
     """Return cached LinkedIn accountId, or fetch from GetLate and cache it."""
     if os.path.exists(config_path):
-        data = json.loads(open(config_path).read())
+        with open(config_path) as f:
+            data = json.loads(f.read())
         if data.get("linkedin_account_id"):
             return data["linkedin_account_id"]
 
@@ -51,7 +54,11 @@ def get_account_id(late_api_key, config_path=DEFAULT_CONFIG_PATH):
         f"{GETLATE_BASE}/accounts",
         headers={"Authorization": f"Bearer {late_api_key}"},
     )
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"\n❌ GetLate API error: {e}\n   Check your LATE_API_KEY is correct.\n")
+        sys.exit(1)
     accounts = resp.json()
 
     linkedin = next(

@@ -85,3 +85,12 @@ def test_get_account_id_no_linkedin_account(tmp_path):
         from config import get_account_id
         with pytest.raises(SystemExit):
             get_account_id(late_api_key="fake_key", config_path=str(config_file))
+
+
+def test_get_env_missing_keys(monkeypatch):
+    """Raises SystemExit when API keys are missing from environment."""
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("LATE_API_KEY", raising=False)
+    from config import get_env
+    with pytest.raises(SystemExit):
+        get_env()
