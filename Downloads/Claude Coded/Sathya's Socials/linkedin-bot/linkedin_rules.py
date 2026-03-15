@@ -6,7 +6,7 @@ LINKEDIN_RULES = """
 - No engagement bait: "Comment YES if you agree" now gets penalized. Ask genuine questions instead
 - External links suppress reach by up to 80%. Never put links in post body. Put them in first comment instead
 - Posting more than once in 24 hours causes the newer post to cannibalize the previous one's reach
-- More than 5 hashtags triggers a spam penalty. Use 0–3 max (hashtags have reduced impact in 2025)
+- Do not use any hashtags. They have minimal impact in 2025 and clutter the post.
 - Avoid bit.ly or link shorteners — they trigger spam filters
 
 ## POST LENGTH
@@ -30,7 +30,7 @@ LINKEDIN_RULES = """
 - Mobile-first: 60%+ of LinkedIn users browse on phone
 - No walls of text. Each line should be easy to skim
 - No orphan words (single word on its own line at the end of a sentence)
-- Emojis: 1–3 max, used sparingly and only where they add meaning
+- No emojis at all
 
 ## POST FRAMEWORKS TO ROTATE
 1. Story Hook → Problem → Insight → CTA
@@ -57,6 +57,7 @@ Best slots in order:
 - Passive voice
 - Starting with "I" (LinkedIn algorithm slightly penalizes this)
 - Self-promotion without value
-- Hashtag stuffing
+- Hashtags of any kind
+- Em-dashes (—). Use a full stop or line break instead
 - Corporate jargon
 """

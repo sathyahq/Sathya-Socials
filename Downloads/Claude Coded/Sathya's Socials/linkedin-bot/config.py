@@ -22,7 +22,7 @@ def load_context(posts_path=DEFAULT_POSTS_PATH, icp_path=DEFAULT_ICP_PATH):
     icp_text = ""
 
     if os.path.exists(posts_path):
-        with open(posts_path) as f:
+        with open(posts_path, encoding="utf-8") as f:
             posts_text = f.read().strip()
     if not posts_text:
         warnings.append(
@@ -31,7 +31,7 @@ def load_context(posts_path=DEFAULT_POSTS_PATH, icp_path=DEFAULT_ICP_PATH):
         )
 
     if os.path.exists(icp_path):
-        with open(icp_path) as f:
+        with open(icp_path, encoding="utf-8") as f:
             icp_text = f.read().strip()
     if not icp_text:
         warnings.append(

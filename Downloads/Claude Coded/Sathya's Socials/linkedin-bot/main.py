@@ -11,15 +11,15 @@ def main():
     # 2. Load context files + print warnings
     ctx = load_context()
     for warning in ctx["warnings"]:
-        print(f"⚠️  {warning}")
+        print(f"[!] {warning}")
     if ctx["warnings"]:
         print()
 
     # 3. Get topic from user
-    print("📝 What's your topic or idea?")
+    print("What's your topic or idea?")
     topic = input("> ").strip()
     if not topic:
-        print("❌ No topic entered. Exiting.")
+        print("No topic entered. Exiting.")
         sys.exit(1)
     print()
 
@@ -37,12 +37,12 @@ def main():
 
     # 6. Display post for review
     print()
-    print("─" * 50)
+    print("-" * 50)
     print(f"THE POST ({char_count:,} chars)")
-    print("─" * 50)
+    print("-" * 50)
     print(post)
-    print("─" * 50)
-    print(f"\n📅 Will schedule for: {slot_display}\n")
+    print("-" * 50)
+    print(f"\nScheduled for: {slot_display}\n")
 
     # 7. Approval
     answer = input("Approve and schedule? [y/n]: ").strip().lower()
@@ -54,7 +54,7 @@ def main():
     account_id = get_account_id(late_api_key=env["late_key"])
 
     # 9. Schedule
-    print("\n⏳ Scheduling...")
+    print("\nScheduling...")
     success = schedule_post(
         content=post,
         account_id=account_id,
@@ -63,9 +63,9 @@ def main():
     )
 
     if success:
-        print(f"✅ Scheduled! Post goes live: {slot.strftime('%A %d %b %Y, %I:%M %p IST')}")
+        print(f"Scheduled! Post goes live: {slot.strftime('%A %d %b %Y, %I:%M %p IST')}")
     else:
-        print("❌ Scheduling failed. Post saved to pending_posts.json — reschedule manually.")
+        print("Scheduling failed. Post saved to pending_posts.json -- reschedule manually.")
 
 
 if __name__ == "__main__":
