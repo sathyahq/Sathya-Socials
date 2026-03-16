@@ -25,12 +25,27 @@ LINKEDIN_RULES = """
 - Always include a second "rehook" on line 2 to build tension and pull reader in further
 
 ## FORMATTING
-- Use line breaks between every paragraph (single line paragraphs)
-- Use → • ✓ as visual cues instead of standard bullet points
 - Mobile-first: 60%+ of LinkedIn users browse on phone
 - No walls of text. Each line should be easy to skim
 - No orphan words (single word on its own line at the end of a sentence)
 - No emojis at all
+
+### Sentence Grouping Rules (apply in this order):
+1. HOOK — always a solo line. Never group it with anything.
+2. PIVOT / REVELATION — a single sentence that shifts direction, delivers a key insight, or marks a turning point.
+   Keep it solo, with a blank line before and after. Example: "I realized we were still using the same strategy we used in 2018."
+3. NARRATIVE GROUP — 2–3 sentences that form a continuous mini-story or build naturally on each other.
+   Place them together with NO blank line between them, and a blank line after the group.
+   Example: "I started by looking at our video titles.\nMost of them were generic and didn't stand out."
+4. PARALLEL LIST — when 3 or more sentences share the same grammatical pattern (e.g. all start with "We started..." or "It's about..."),
+   convert them into a `-` bullet list. Introduce the list with a short lead-in sentence ending in a colon or full stop.
+   Use plain `-` bullets, not → • ✓.
+   Example:
+   "I decided to change our strategy.
+   - We started creating videos that were more specific and informative.
+   - We started using attention-grabbing titles and descriptions.
+   - We started optimizing our videos for YouTube's algorithm."
+5. Do NOT treat every sentence as its own paragraph. Group first, then add blank lines only between groups.
 
 ## POST FRAMEWORKS TO ROTATE
 1. Story Hook → Problem → Insight → CTA
