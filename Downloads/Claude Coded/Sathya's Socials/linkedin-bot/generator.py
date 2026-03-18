@@ -63,6 +63,13 @@ def _llm_format(client, post: str) -> str:
     return resp.choices[0].message.content.strip()
 
 
+def format_post(client, post: str) -> str:
+    """Orchestrate Pass 4: pre-pass → LLM format → post-pass."""
+    cleaned = _pre_pass(post)
+    formatted = _llm_format(client, cleaned)
+    return _post_pass(formatted, post)
+
+
 DAY_TONE = {
     "Monday": (
         "Tone: Confident and results-focused. Lead with real client outcomes or business proof. "
@@ -249,5 +256,8 @@ def generate(topic: str, day: str, groq_key: str, posts_text: str, icp_text: str
 
     print("⚙️  Writing full post...")
     post = generate_post(client, topic, winning_hook, system_prompt, day=day)
+
+    print("⚙️  Formatting post...")
+    post = format_post(client, post)
 
     return post, len(post)

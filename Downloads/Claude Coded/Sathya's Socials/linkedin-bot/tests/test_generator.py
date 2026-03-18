@@ -102,6 +102,67 @@ def test_generate_post_uses_winning_hook():
     assert "Winning hook line." in user_msg
 
 
+def test_format_post_runs_all_three_stages():
+    """format_post() runs pre-pass, LLM, and post-pass in sequence."""
+    formatted = "Hook line.\nRehook line.\n\nBody block.\n\nCTA here."
+    client = make_mock_client(formatted)
+
+    from generator import format_post
+    original = "Hook line.\n\nRehook line.\n\nBody block.\n\nCTA here."
+    result = format_post(client, original)
+
+    assert result == formatted
+    assert "—" not in result
+
+
+def test_format_post_strips_em_dash_before_llm():
+    """format_post() removes em-dashes before sending to LLM."""
+    client = make_mock_client("Hook line, very good.\n\nBody block.")
+
+    from generator import format_post
+    result = format_post(client, "Hook line — very good.\n\nBody block.")
+    assert "—" not in result
+
+
+def test_generate_calls_format_post_as_pass_4(capsys):
+    """generate() calls format_post and prints '⚙️  Formatting post...'."""
+    hooks_text = "1. Hook one\n2. Hook two\n3. Hook three"
+    score_text = "2"
+    post_text = "Hook two\n\nThis is the full post content."
+    formatted_text = "Hook two\nThis is the full post content."
+
+    call_count = {"n": 0}
+    responses = [hooks_text, score_text, post_text, formatted_text]
+
+    def side_effect(**kwargs):
+        mock_choice = MagicMock()
+        mock_choice.message.content = responses[call_count["n"]]
+        call_count["n"] += 1
+        mock_completion = MagicMock()
+        mock_completion.choices = [mock_choice]
+        return mock_completion
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = side_effect
+
+    with patch("generator.OpenAI", return_value=mock_client):
+        with patch("generator.fetch_context", return_value=""):
+            from generator import generate
+            post, char_count = generate(
+                topic="AI mistakes",
+                day="Wednesday",
+                groq_key="fake",
+                posts_text="",
+                icp_text=""
+            )
+
+    assert post == formatted_text
+    assert char_count == len(formatted_text)
+    captured = capsys.readouterr()
+    assert "Formatting post" in captured.out
+    assert mock_client.chat.completions.create.call_count == 4
+
+
 def test_llm_format_returns_formatted_text():
     """_llm_format sends post to Groq and returns reformatted text."""
     formatted = "Hook line.\nRehook line.\n\nBody block.\n\nCTA here."
@@ -219,13 +280,14 @@ def test_generate_post_avoids_generic_phrases():
 
 
 def test_generate_returns_post_and_char_count():
-    """generate() orchestrates all 3 passes and returns (post_text, char_count)."""
+    """generate() orchestrates all 4 passes and returns (post_text, char_count)."""
     hooks_text = "1. Hook one\n2. Hook two\n3. Hook three"
     score_text = "2"
     post_text = "Hook two\n\nThis is the full post content."
+    formatted_text = "Hook two\n\nThis is the full post content."
 
     call_count = {"n": 0}
-    responses = [hooks_text, score_text, post_text]
+    responses = [hooks_text, score_text, post_text, formatted_text]
 
     def side_effect(**kwargs):
         mock_choice = MagicMock()
@@ -249,5 +311,5 @@ def test_generate_returns_post_and_char_count():
                 icp_text=""
             )
 
-    assert post == post_text
-    assert char_count == len(post_text)
+    assert post == formatted_text
+    assert char_count == len(formatted_text)
