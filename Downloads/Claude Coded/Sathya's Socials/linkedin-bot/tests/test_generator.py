@@ -102,6 +102,28 @@ def test_generate_post_uses_winning_hook():
     assert "Winning hook line." in user_msg
 
 
+def test_pre_pass_strips_em_dashes():
+    """_pre_pass replaces em-dashes with commas."""
+    from generator import _pre_pass
+    result = _pre_pass("This is great — really great — trust me.")
+    assert "—" not in result
+    assert "," in result
+
+
+def test_pre_pass_collapses_double_spaces():
+    """_pre_pass collapses double spaces to single spaces."""
+    from generator import _pre_pass
+    result = _pre_pass("Hello  world  here.")
+    assert "  " not in result
+
+
+def test_pre_pass_leaves_clean_text_unchanged():
+    """_pre_pass does not modify text that needs no fixes."""
+    from generator import _pre_pass
+    clean = "Clean text here.\n\nSecond paragraph."
+    assert _pre_pass(clean) == clean
+
+
 def test_generate_post_avoids_generic_phrases():
     """Pass 3 prompt includes bad→good phrase rewrite examples."""
     client = make_mock_client("Some post content here.")

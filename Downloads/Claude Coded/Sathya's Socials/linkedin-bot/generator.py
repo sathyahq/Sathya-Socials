@@ -8,6 +8,13 @@ from context_fetcher import fetch_context
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MODEL = "llama-3.3-70b-versatile"
 
+def _pre_pass(text: str) -> str:
+    """Python pre-pass: strip em-dashes, collapse double spaces."""
+    text = text.replace("—", ",")
+    text = re.sub(r" {2,}", " ", text)
+    return text
+
+
 DAY_TONE = {
     "Monday": (
         "Tone: Confident and results-focused. Lead with real client outcomes or business proof. "
