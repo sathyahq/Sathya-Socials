@@ -8,6 +8,18 @@ from context_fetcher import fetch_context
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MODEL = "llama-3.3-70b-versatile"
 
+FORMAT_RULES = """
+## PARAGRAPH GROUPING (follow exactly)
+- Blank lines go BETWEEN blocks, not between every single sentence
+- A list intro line and its items stay together — no blank line between them
+- Two tightly related sentences (setup + punch, cause + effect, pronoun reference) can share a block with no blank line between them
+- All other standalone sentences get blank lines on both sides
+- Use → for lists of 3+ parallel items (features, steps, results)
+- Use x to negate items and - for the positive contrast (e.g. "x Not views.\\nx Not subscribers.\\n- Revenue.")
+- Use - for action-oriented lists ("- You need to know...", "- You need to show up...")
+- NEVER use em-dashes (—). Replace with a comma or rewrite.
+"""
+
 def _pre_pass(text: str) -> str:
     """Python pre-pass: strip em-dashes, collapse double spaces."""
     text = text.replace("—", ",")
@@ -25,6 +37,30 @@ def _post_pass(formatted: str, original: str) -> str:
             f"length drift {drift:.0%} exceeds 15% threshold — LLM may have rewritten content"
         )
     return formatted
+
+
+def _llm_format(client, post: str) -> str:
+    """Pass 4: LLM-based formatting — grouping and → list conversion only."""
+    resp = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": FORMAT_RULES},
+            {
+                "role": "user",
+                "content": (
+                    "Reformat this LinkedIn post. Do NOT change any words, sentences, or meaning.\n"
+                    "Fix ONLY the formatting:\n\n"
+                    "1. Apply the paragraph grouping rules exactly.\n"
+                    "2. Convert any 3+ consecutive sentences with the same grammatical pattern "
+                    "(e.g. 'I'm X. I'm Y. I'm Z.') into a → list.\n"
+                    "3. Keep x / - contrast blocks together with no blank lines between items.\n\n"
+                    "Return ONLY the reformatted post. No explanation.\n\n"
+                    f"POST:\n{post}"
+                ),
+            },
+        ],
+    )
+    return resp.choices[0].message.content.strip()
 
 
 DAY_TONE = {

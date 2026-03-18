@@ -102,6 +102,43 @@ def test_generate_post_uses_winning_hook():
     assert "Winning hook line." in user_msg
 
 
+def test_llm_format_returns_formatted_text():
+    """_llm_format sends post to Groq and returns reformatted text."""
+    formatted = "Hook line.\nRehook line.\n\nBody block.\n\nCTA here."
+    client = make_mock_client(formatted)
+
+    from generator import _llm_format
+    result = _llm_format(client, "Hook line.\n\nRehook line.\n\nBody block.\n\nCTA here.")
+
+    assert result == formatted
+    assert client.chat.completions.create.called
+
+
+def test_llm_format_prompt_instructs_no_word_changes():
+    """_llm_format prompt explicitly tells LLM not to change words."""
+    client = make_mock_client("Formatted post.")
+
+    from generator import _llm_format
+    _llm_format(client, "Some post text.")
+
+    call_args = client.chat.completions.create.call_args
+    user_msg = call_args[1]["messages"][-1]["content"]
+    assert "do not change" in user_msg.lower() or "Do NOT change" in user_msg
+
+
+def test_llm_format_prompt_includes_grouping_rules():
+    """_llm_format prompt contains the paragraph grouping rules."""
+    client = make_mock_client("Formatted post.")
+
+    from generator import _llm_format
+    _llm_format(client, "Some post text.")
+
+    call_args = client.chat.completions.create.call_args
+    system_msg = call_args[1]["messages"][0]["content"]
+    assert "→" in system_msg
+    assert "blank line" in system_msg.lower()
+
+
 def test_post_pass_passes_clean_output():
     """_post_pass returns text unchanged when formatting is correct."""
     from generator import _post_pass
