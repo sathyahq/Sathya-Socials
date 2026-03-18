@@ -98,7 +98,7 @@ def test_generate_post_uses_winning_hook():
     assert result == post_text
     call_args = client.chat.completions.create.call_args
     user_msg = call_args[1]["messages"][-1]["content"]
-    assert "Use EXACTLY this as your first line" in user_msg
+    assert "Start with this exact line:" in user_msg
     assert "Winning hook line." in user_msg
 
 
@@ -125,7 +125,7 @@ def test_format_post_strips_em_dash_before_llm():
 
 
 def test_generate_calls_format_post_as_pass_4(capsys):
-    """generate() calls format_post and prints '⚙️  Formatting post...'."""
+    """generate() calls format_post and prints 'Formatting post...'."""
     hooks_text = "1. Hook one\n2. Hook two\n3. Hook three"
     score_text = "2"
     post_text = "Hook two\n\nThis is the full post content."
@@ -146,15 +146,13 @@ def test_generate_calls_format_post_as_pass_4(capsys):
     mock_client.chat.completions.create.side_effect = side_effect
 
     with patch("generator.OpenAI", return_value=mock_client):
-        with patch("generator.fetch_context", return_value=""):
-            from generator import generate
-            post, char_count = generate(
-                topic="AI mistakes",
-                day="Wednesday",
-                groq_key="fake",
-                posts_text="",
-                icp_text=""
-            )
+        from generator import generate
+        post, char_count = generate(
+            topic="AI mistakes",
+            groq_key="fake",
+            posts_text="",
+            icp_text=""
+        )
 
     assert post == formatted_text
     assert char_count == len(formatted_text)
@@ -258,26 +256,6 @@ def test_pre_pass_leaves_clean_text_unchanged():
     assert _pre_pass(clean) == clean
 
 
-def test_generate_post_avoids_generic_phrases():
-    """Pass 3 prompt includes bad→good phrase rewrite examples."""
-    client = make_mock_client("Some post content here.")
-
-    from generator import generate_post
-    generate_post(
-        client,
-        topic="YouTube leads",
-        winning_hook="90% of YouTube views don't convert",
-        system_prompt="rules",
-        day="Wednesday"
-    )
-
-    call_args = client.chat.completions.create.call_args
-    user_msg = call_args[1]["messages"][-1]["content"]
-    assert "making adjustments to optimize" in user_msg
-    assert "testing what works" in user_msg
-    assert "pipeline for potential customers" in user_msg
-    assert "way to bring in buyers" in user_msg
-
 
 def test_generate_returns_post_and_char_count():
     """generate() orchestrates all 4 passes and returns (post_text, char_count)."""
@@ -301,15 +279,13 @@ def test_generate_returns_post_and_char_count():
     mock_client.chat.completions.create.side_effect = side_effect
 
     with patch("generator.OpenAI", return_value=mock_client):
-        with patch("generator.fetch_context", return_value=""):
-            from generator import generate
-            post, char_count = generate(
-                topic="AI mistakes",
-                day="Wednesday",
-                groq_key="fake",
-                posts_text="",
-                icp_text=""
-            )
+        from generator import generate
+        post, char_count = generate(
+            topic="AI mistakes",
+            groq_key="fake",
+            posts_text="",
+            icp_text=""
+        )
 
     assert post == formatted_text
     assert char_count == len(formatted_text)

@@ -3,7 +3,6 @@ import re
 from openai import OpenAI
 
 from linkedin_rules import LINKEDIN_RULES
-from context_fetcher import fetch_context
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MODEL = "llama-3.3-70b-versatile"
@@ -19,6 +18,7 @@ FORMAT_RULES = """
 - Use - for action-oriented lists ("- You need to know...", "- You need to show up...")
 - NEVER use em-dashes (—). Replace with a comma or rewrite.
 """
+
 
 def _pre_pass(text: str) -> str:
     """Python pre-pass: strip em-dashes, collapse double spaces."""
@@ -70,32 +70,7 @@ def format_post(client, post: str) -> str:
     return _post_pass(formatted, post)
 
 
-DAY_TONE = {
-    "Monday": (
-        "Tone: Confident and results-focused. Lead with real client outcomes or business proof. "
-        "This is SellonTube positioning day — make the reader feel the cost of not using YouTube for leads."
-    ),
-    "Tuesday": (
-        "Tone: Curious and experimental. Write as a founder figuring things out in public. "
-        "Frame AI tools through the lens of what they enabled — leads, speed, decisions — not the tool itself."
-    ),
-    "Wednesday": (
-        "Tone: Thoughtful and contrarian. Challenge a common assumption about business or building. "
-        "Back it with personal reasoning. Invite debate without baiting for engagement."
-    ),
-    "Thursday": (
-        "Tone: Tactical and specific. Share a framework, a mistake, or a counter-intuitive YouTube insight. "
-        "Make it immediately actionable. This is the most shareable and saveable post of the week."
-    ),
-    "Friday": (
-        "Tone: Personal, reflective, and vulnerable. Start with a real life story or observation. "
-        "Draw out a wellbeing insight — happiness, gratitude, or energy. Connect it to a business lesson. "
-        "End with something that makes the reader feel seen, not just informed."
-    ),
-}
-
-
-def build_system_prompt(posts_text: str, icp_text: str, live_context: str = "") -> str:
+def build_system_prompt(posts_text: str, icp_text: str) -> str:
     """Build the system prompt injected into every Groq call."""
     prompt = f"## LINKEDIN BEST PRACTICES\n{LINKEDIN_RULES}\n\n"
 
@@ -104,9 +79,6 @@ def build_system_prompt(posts_text: str, icp_text: str, live_context: str = "") 
 
     if icp_text:
         prompt += f"## TARGET AUDIENCE\n{icp_text}\n\n"
-
-    if live_context:
-        prompt += f"{live_context}\n\n"
 
     prompt += (
         "Write exactly like the voice samples. "
@@ -185,49 +157,59 @@ def score_hooks(client, hooks: list[str], system_prompt: str) -> int:
     return 0
 
 
-def generate_post(client, topic: str, winning_hook: str, system_prompt: str, day: str = "") -> str:
+def generate_post(client, topic: str, winning_hook: str, system_prompt: str) -> str:
     """Pass 3: Generate full LinkedIn post using the winning hook as the opener."""
-    tone_instruction = DAY_TONE.get(day, "")
-    tone_block = f"DAY TONE ({day}):\n{tone_instruction}\n\n" if tone_instruction else ""
-
     resp = client.chat.completions.create(
         model=MODEL,
+        max_tokens=1200,
+        temperature=0.8,
         messages=[
-            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
                 "content": (
-                    f"{tone_block}"
-                    f"Topic: {topic}\n\n"
-                    f"Use EXACTLY this as your first line (do not change it):\n{winning_hook}\n\n"
-                    "Now write the full LinkedIn post.\n"
-                    "Requirements:\n"
-                    "- 1,300–1,600 characters total\n"
-                    "- Max 12 words per sentence\n"
-                    "- Include a second 'rehook' on line 2 to build tension\n"
-                    "- End with ONE clear CTA (no engagement bait)\n"
-                    "- 0–3 hashtags max, placed at the end\n"
-                    "- No external links in the post body\n"
-                    "- No generic AI phrases\n\n"
-                    "FORMATTING RULES (critical — follow exactly):\n"
-                    "- NEVER use em-dashes (—). Use a comma or rewrite instead\n"
-                    "- Blank lines go BETWEEN blocks, not between every single sentence\n"
-                    "- A list intro line and its items stay together with NO blank line between them\n"
-                    "- Two tightly related sentences (setup + punch) can share a block with no blank line\n"
-                    "- Standalone sentences get blank lines on both sides\n"
-                    "- Use → for lists of 3+ parallel items (features, results, steps)\n"
-                    "- Use x to negate and - for the positive contrast: 'x Not views.\\nx Not subscribers.\\n- Revenue.'\n"
-                    "- Use - for action lists: '- You need to know X.\\n- You need to show up.'\n\n"
-                    "AVOID THESE PHRASES (rewrite in Sathya's natural voice):\n"
-                    "- 'making adjustments to optimize' → 'testing what works'\n"
-                    "- 'pipeline for potential customers' → 'way to bring in buyers'\n"
-                    "- 'designed to convert' → 'built to get leads'\n"
-                    "- 'I\\'m analyzing what works and what doesn\\'t' → 'I track what converts. I cut what doesn\\'t.'\n"
-                    "- 'content for entertainment' → 'content that does nothing'\n"
-                    "- 'specific call to action' → 'one clear next step'\n"
-                    "- 'optimize the results' → 'improve what I see'\n"
-                    "- 'tracking the conversion rate' → 'watching what converts'\n\n"
-                    "Output ONLY the post. No explanations, no preamble."
+                    "Here is an example of a well-written LinkedIn post. Study its length and depth:\n\n"
+                    "---EXAMPLE START---\n"
+                    "My 9-year-old just made Google feel ancient.\n\n"
+                    "We were watching Sookshmadarshini, the Malayalam film with Nazriya.\n\n"
+                    "A character mentioned Alzheimer's.\n\n"
+                    "She paused. Thought for a second. Then reached for her phone.\n\n"
+                    "I assumed she'd Google it.\n\n"
+                    "But no.\n\n"
+                    "She opened ChatGPT.\n\n"
+                    "That moment stayed with me longer than the movie did.\n\n"
+                    "I grew up with 'just Google it.'\n\n"
+                    "For her? Google was never the reflex.\n\n"
+                    "She didn't want links. She wanted answers.\n\n"
+                    "No sifting through ten blue links.\n\n"
+                    "No ads dressed up as content.\n\n"
+                    "No SEO-padded fluff.\n\n"
+                    "Just a direct conversation with something that knows things.\n\n"
+                    "Here's what that unlocked for me.\n\n"
+                    "The shift isn't about Google losing.\n\n"
+                    "It's about people raising their expectations.\n\n"
+                    "They don't want information. They want understanding.\n\n"
+                    "And if you're still creating content like it's 2015, generic and safe, "
+                    "AI will answer that question before your article even loads.\n\n"
+                    "What wins now:\n\n"
+                    "Real experience, not recycled advice.\n\n"
+                    "Specific stories, not broad claims.\n\n"
+                    "Depth that no AI can fake.\n\n"
+                    "My daughter didn't choose ChatGPT over Google.\n\n"
+                    "She chose answers over links.\n\n"
+                    "Are you still giving people links?\n"
+                    "---EXAMPLE END---\n\n"
+                    f"Now write a NEW post about: {topic}\n\n"
+                    f"Start with this exact line: {winning_hook}\n\n"
+                    "Match the example's length and depth exactly.\n"
+                    "Apply this exact formatting logic:\n"
+                    "1. HOOK: always a solo line.\n"
+                    "2. PIVOT/REVELATION (single turning-point insight): solo line, blank line before and after.\n"
+                    "3. NARRATIVE GROUP (2-3 sentences that flow together as one continuous mini-story): group them with NO blank line between them, blank line after the group.\n"
+                    "4. PARALLEL LIST (3+ sentences with the same grammatical pattern): convert to a `-` bullet list under a lead-in sentence. Use plain `-` bullets only.\n"
+                    "5. Do NOT put every sentence on its own paragraph. Group first, then separate groups with blank lines.\n"
+                    "Short sentences. First person. Specific details. No hashtags. No emojis. No em-dashes.\n"
+                    "End with one direct question.\n\n"
+                    "Output ONLY the post. Nothing else."
                 ),
             },
         ],
@@ -235,29 +217,26 @@ def generate_post(client, topic: str, winning_hook: str, system_prompt: str, day
     return resp.choices[0].message.content.strip()
 
 
-def generate(topic: str, day: str, groq_key: str, posts_text: str, icp_text: str) -> tuple[str, int]:
-    """Orchestrate all 3 passes. Return (post_text, char_count)."""
+def generate(topic: str, groq_key: str, posts_text: str, icp_text: str) -> tuple[str, int]:
+    """Orchestrate all 4 passes. Return (post_text, char_count)."""
     client = OpenAI(api_key=groq_key, base_url=GROQ_BASE_URL)
+    system_prompt = build_system_prompt(posts_text, icp_text)
 
-    # Fetch live context for Mon/Thu before building prompt
-    live_context = fetch_context(day)
-    system_prompt = build_system_prompt(posts_text, icp_text, live_context)
-
-    print("⚙️  Generating hooks...")
+    print("Generating hooks...")
     hooks = generate_hooks(client, topic, system_prompt)
 
     if not hooks:
         raise ValueError("Pass 1 returned no hooks. Check Groq response or retry.")
 
-    print("⚙️  Scoring hooks...", end=" ", flush=True)
+    print("Scoring hooks...", end=" ", flush=True)
     best_idx = score_hooks(client, hooks, system_prompt)
     winning_hook = hooks[best_idx]
-    print(f'selected: "Hook {best_idx + 1}"')
+    print(f'selected: Hook {best_idx + 1}')
 
-    print("⚙️  Writing full post...")
-    post = generate_post(client, topic, winning_hook, system_prompt, day=day)
+    print("Writing full post...")
+    post = generate_post(client, topic, winning_hook, system_prompt)
 
-    print("⚙️  Formatting post...")
+    print("Formatting post...")
     post = format_post(client, post)
 
     return post, len(post)
