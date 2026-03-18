@@ -102,6 +102,42 @@ def test_generate_post_uses_winning_hook():
     assert "Winning hook line." in user_msg
 
 
+def test_post_pass_passes_clean_output():
+    """_post_pass returns text unchanged when formatting is correct."""
+    from generator import _post_pass
+    original = "Clean post.\n\nSecond block."
+    formatted = "Clean post.\n\nSecond block."
+    result = _post_pass(formatted, original)
+    assert result == formatted
+
+
+def test_post_pass_raises_on_em_dash():
+    """_post_pass raises ValueError if em-dash survived formatting."""
+    from generator import _post_pass
+    original = "Some post text here."
+    formatted = "Some post — with em-dash."
+    with pytest.raises(ValueError, match="em-dash"):
+        _post_pass(formatted, original)
+
+
+def test_post_pass_raises_on_excessive_length_change():
+    """_post_pass raises ValueError if formatted post grew more than 15%."""
+    from generator import _post_pass
+    original = "A" * 1000
+    formatted = "A" * 1200  # 20% longer — over the 15% threshold
+    with pytest.raises(ValueError, match="length drift"):
+        _post_pass(formatted, original)
+
+
+def test_post_pass_allows_length_shrink_within_threshold():
+    """_post_pass allows up to 15% length change in either direction."""
+    from generator import _post_pass
+    original = "A" * 1000
+    formatted = "A" * 880  # 12% shorter — within threshold
+    result = _post_pass(formatted, original)
+    assert result == formatted
+
+
 def test_pre_pass_strips_em_dashes():
     """_pre_pass replaces em-dashes with commas."""
     from generator import _pre_pass

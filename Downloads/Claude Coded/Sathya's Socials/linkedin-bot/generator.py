@@ -15,6 +15,18 @@ def _pre_pass(text: str) -> str:
     return text
 
 
+def _post_pass(formatted: str, original: str) -> str:
+    """Python post-pass: assert no em-dashes, check for excessive length drift."""
+    if "—" in formatted:
+        raise ValueError("em-dash found in formatted post — pre-pass or LLM re-introduced it")
+    drift = abs(len(formatted) - len(original)) / max(len(original), 1)
+    if drift > 0.15:
+        raise ValueError(
+            f"length drift {drift:.0%} exceeds 15% threshold — LLM may have rewritten content"
+        )
+    return formatted
+
+
 DAY_TONE = {
     "Monday": (
         "Tone: Confident and results-focused. Lead with real client outcomes or business proof. "
