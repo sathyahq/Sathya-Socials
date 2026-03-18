@@ -3,12 +3,37 @@ import re
 from openai import OpenAI
 
 from linkedin_rules import LINKEDIN_RULES
+from context_fetcher import fetch_context
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MODEL = "llama-3.3-70b-versatile"
 
+DAY_TONE = {
+    "Monday": (
+        "Tone: Confident and results-focused. Lead with real client outcomes or business proof. "
+        "This is SellonTube positioning day — make the reader feel the cost of not using YouTube for leads."
+    ),
+    "Tuesday": (
+        "Tone: Curious and experimental. Write as a founder figuring things out in public. "
+        "Frame AI tools through the lens of what they enabled — leads, speed, decisions — not the tool itself."
+    ),
+    "Wednesday": (
+        "Tone: Thoughtful and contrarian. Challenge a common assumption about business or building. "
+        "Back it with personal reasoning. Invite debate without baiting for engagement."
+    ),
+    "Thursday": (
+        "Tone: Tactical and specific. Share a framework, a mistake, or a counter-intuitive YouTube insight. "
+        "Make it immediately actionable. This is the most shareable and saveable post of the week."
+    ),
+    "Friday": (
+        "Tone: Personal, reflective, and vulnerable. Start with a real life story or observation. "
+        "Draw out a wellbeing insight — happiness, gratitude, or energy. Connect it to a business lesson. "
+        "End with something that makes the reader feel seen, not just informed."
+    ),
+}
 
-def build_system_prompt(posts_text: str, icp_text: str) -> str:
+
+def build_system_prompt(posts_text: str, icp_text: str, live_context: str = "") -> str:
     """Build the system prompt injected into every Groq call."""
     prompt = f"## LINKEDIN BEST PRACTICES\n{LINKEDIN_RULES}\n\n"
 
@@ -17,6 +42,9 @@ def build_system_prompt(posts_text: str, icp_text: str) -> str:
 
     if icp_text:
         prompt += f"## TARGET AUDIENCE\n{icp_text}\n\n"
+
+    if live_context:
+        prompt += f"{live_context}\n\n"
 
     prompt += (
         "Write exactly like the voice samples. "
@@ -95,8 +123,11 @@ def score_hooks(client, hooks: list[str], system_prompt: str) -> int:
     return 0
 
 
-def generate_post(client, topic: str, winning_hook: str, system_prompt: str) -> str:
+def generate_post(client, topic: str, winning_hook: str, system_prompt: str, day: str = "") -> str:
     """Pass 3: Generate full LinkedIn post using the winning hook as the opener."""
+    tone_instruction = DAY_TONE.get(day, "")
+    tone_block = f"DAY TONE ({day}):\n{tone_instruction}\n\n" if tone_instruction else ""
+
     resp = client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -104,18 +135,36 @@ def generate_post(client, topic: str, winning_hook: str, system_prompt: str) -> 
             {
                 "role": "user",
                 "content": (
+                    f"{tone_block}"
                     f"Topic: {topic}\n\n"
                     f"Use EXACTLY this as your first line (do not change it):\n{winning_hook}\n\n"
                     "Now write the full LinkedIn post.\n"
                     "Requirements:\n"
                     "- 1,300–1,600 characters total\n"
-                    "- Single-sentence paragraphs with line breaks between each\n"
-                    "- Include a second 'rehook' on line 2 to build tension\n"
                     "- Max 12 words per sentence\n"
+                    "- Include a second 'rehook' on line 2 to build tension\n"
                     "- End with ONE clear CTA (no engagement bait)\n"
                     "- 0–3 hashtags max, placed at the end\n"
                     "- No external links in the post body\n"
                     "- No generic AI phrases\n\n"
+                    "FORMATTING RULES (critical — follow exactly):\n"
+                    "- NEVER use em-dashes (—). Use a comma or rewrite instead\n"
+                    "- Blank lines go BETWEEN blocks, not between every single sentence\n"
+                    "- A list intro line and its items stay together with NO blank line between them\n"
+                    "- Two tightly related sentences (setup + punch) can share a block with no blank line\n"
+                    "- Standalone sentences get blank lines on both sides\n"
+                    "- Use → for lists of 3+ parallel items (features, results, steps)\n"
+                    "- Use x to negate and - for the positive contrast: 'x Not views.\\nx Not subscribers.\\n- Revenue.'\n"
+                    "- Use - for action lists: '- You need to know X.\\n- You need to show up.'\n\n"
+                    "AVOID THESE PHRASES (rewrite in Sathya's natural voice):\n"
+                    "- 'making adjustments to optimize' → 'testing what works'\n"
+                    "- 'pipeline for potential customers' → 'way to bring in buyers'\n"
+                    "- 'designed to convert' → 'built to get leads'\n"
+                    "- 'I\\'m analyzing what works and what doesn\\'t' → 'I track what converts. I cut what doesn\\'t.'\n"
+                    "- 'content for entertainment' → 'content that does nothing'\n"
+                    "- 'specific call to action' → 'one clear next step'\n"
+                    "- 'optimize the results' → 'improve what I see'\n"
+                    "- 'tracking the conversion rate' → 'watching what converts'\n\n"
                     "Output ONLY the post. No explanations, no preamble."
                 ),
             },
@@ -124,10 +173,13 @@ def generate_post(client, topic: str, winning_hook: str, system_prompt: str) -> 
     return resp.choices[0].message.content.strip()
 
 
-def generate(topic: str, groq_key: str, posts_text: str, icp_text: str) -> tuple[str, int]:
+def generate(topic: str, day: str, groq_key: str, posts_text: str, icp_text: str) -> tuple[str, int]:
     """Orchestrate all 3 passes. Return (post_text, char_count)."""
     client = OpenAI(api_key=groq_key, base_url=GROQ_BASE_URL)
-    system_prompt = build_system_prompt(posts_text, icp_text)
+
+    # Fetch live context for Mon/Thu before building prompt
+    live_context = fetch_context(day)
+    system_prompt = build_system_prompt(posts_text, icp_text, live_context)
 
     print("⚙️  Generating hooks...")
     hooks = generate_hooks(client, topic, system_prompt)
@@ -141,6 +193,6 @@ def generate(topic: str, groq_key: str, posts_text: str, icp_text: str) -> tuple
     print(f'selected: "Hook {best_idx + 1}"')
 
     print("⚙️  Writing full post...")
-    post = generate_post(client, topic, winning_hook, system_prompt)
+    post = generate_post(client, topic, winning_hook, system_prompt, day=day)
 
     return post, len(post)
